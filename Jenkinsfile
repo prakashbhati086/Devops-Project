@@ -5,9 +5,9 @@ pipeline {
         DOCKER_IMAGE = 'my-website'
         DOCKER_REGISTRY = 'prakashbhati086'
         DOCKER_CREDENTIALS_ID = 'docker-credentials-id'
-        EC2_SSH_CREDENTIALS_ID = 'ec2-ssh-credentials' // ID of the SSH credentials in Jenkins
         EC2_IP = '18.205.23.36'  // EC2 instance IP
-        EC2_USER = 'ubuntu'       
+        EC2_USER = 'ubuntu'       // EC2 SSH username
+        PRIVATE_KEY_PATH = 'E:/software/websitekey.pem' // Correct path to the PEM file
     }
 
     stages {
@@ -38,12 +38,10 @@ pipeline {
         stage('Deploy to EC2 Server') {
             steps {
                 script {
-                    // SSH into the EC2 instance and deploy
-                    sshagent(credentials: [EC2_SSH_CREDENTIALS_ID]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} 'docker pull ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest && docker stop my-website-container || true && docker rm my-website-container || true && docker run -d --name my-website-container -p 5555:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest'
-                        """
-                    }
+                    // Use the private key directly in the SSH command to deploy
+                    sh """
+                        ssh -o StrictHostKeyChecking=no -i ${PRIVATE_KEY_PATH} ${EC2_USER}@${EC2_IP} 'docker pull ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest && docker stop my-website-container || true && docker rm my-website-container || true && docker run -d --name my-website-container -p 5555:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest'
+                    """
                 }
             }
         }
