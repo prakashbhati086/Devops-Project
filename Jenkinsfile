@@ -1,17 +1,63 @@
-stage('Deploy to EC2') {
-    steps {
-        sshagent(['ec2-ssh-credentials']) {
-            script {
-                echo "Testing SSH and Docker commands on EC2 instance..."
+pipeline {
+    agent any
 
-                // Direct SSH and Docker command for testing
-                sh """
-                ssh -o StrictHostKeyChecking=no ubuntu@18.205.23.36 << 'EOF'
-                echo "Connected to EC2 successfully!"
-                docker --version  # Check Docker version
-                EOF
-                """
+    environment {
+        DOCKER_IMAGE = 'my-website'
+        DOCKER_REGISTRY = 'prakashbhati086'
+        DOCKER_CREDENTIALS_ID = 'docker-credentials-id'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: 'https://github.com/prakashbhati086/Devops-Project.git'
             }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
+                        docker.image("${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}").push("latest")
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Server') {
+            steps {
+                script {
+                    // Print Docker environment details for debugging
+                    echo "Docker Registry: ${DOCKER_REGISTRY.toLowerCase()}"
+                    echo "Docker Image: ${DOCKER_IMAGE.toLowerCase()}"
+
+                    // Verify Docker version and path
+                    bat 'docker --version'
+                    bat 'echo %PATH%'
+
+                    // Deploy the container to the server with lowercase variables
+                    bat """
+                    docker run -d -p 5555:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
         }
     }
 }
