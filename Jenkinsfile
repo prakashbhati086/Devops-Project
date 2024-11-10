@@ -4,9 +4,8 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'my-website'
         DOCKER_REGISTRY = 'prakashbhati086'
-        DOCKER_CREDENTIALS_ID = 'docker-credentials-id' // Replace with your Jenkins Docker credentials ID
-        EC2_IP = '18.205.23.36'  // Replace with your EC2 instance IP
-        PEM_FILE_PATH = 'E:/software/websitekey.pem' // Full path to your PEM file
+        DOCKER_CREDENTIALS_ID = 'docker-credentials-id'  // Docker credentials ID
+        EC2_SSH_CREDENTIALS = 'ec2-ssh-credentials'  // SSH credentials ID for EC2
     }
 
     stages {
@@ -36,16 +35,20 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                script {
-                    echo "Deploying Docker container to EC2..."
-                    sh """
-                    ssh -o StrictHostKeyChecking=no -i "${PEM_FILE_PATH}" ubuntu@${EC2_IP} '
-                        docker pull ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest && 
-                        docker stop my-website-container || echo "Container not running" && 
-                        docker rm my-website-container || echo "Container not found" && 
-                        docker run -d --name my-website-container -p 80:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest
-                    '
-                    """
+                sshagent([EC2_SSH_CREDENTIALS]) {
+                    script {
+                        echo "Deploying to EC2 instance..."
+
+                        // SSH into EC2 and pull the latest image
+                        sh """
+                        ssh -o StrictHostKeyChecking=no -i "E:/software/websitekey.pem" ubuntu@18.205.23.36 << 'EOF'
+                        docker pull ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest
+                        docker stop my-website-container || true
+                        docker rm my-website-container || true
+                        docker run -d -p 5555:80 --name my-website-container ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest
+                        EOF
+                        """
+                    }
                 }
             }
         }
@@ -53,10 +56,10 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment to EC2 successful!'
+            echo 'Deployment successful!'
         }
         failure {
-            echo 'Deployment to EC2 failed.'
+            echo 'Deployment failed.'
         }
     }
 }
