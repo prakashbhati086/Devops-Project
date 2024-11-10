@@ -37,9 +37,10 @@ pipeline {
 
         stage('Deploy to EC2 Server') {
             steps {
-                sshagent(credentials: ['your-ssh-credentials-id']) {
+                script {
+                    // Run the SSH command using 'bat' since it's on a Windows machine
                     bat """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} 'docker pull ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest && docker stop my-website-container || true && docker rm my-website-container || true && docker run -d --name my-website-container -p 5555:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest'
+                        ssh -o StrictHostKeyChecking=no -i ${PRIVATE_KEY_PATH} ${EC2_USER}@${EC2_IP} 'docker pull ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest && docker stop my-website-container || true && docker rm my-website-container || true && docker run -d --name my-website-container -p 5555:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest'
                     """
                 }
             }
