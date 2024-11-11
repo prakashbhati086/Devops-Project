@@ -45,7 +45,7 @@ pipeline {
 
                     // Deploy the container to the server with lowercase variables
                     bat """
-                    docker run -d -p 80:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest
+                    docker run -d -p 5555:80 ${DOCKER_REGISTRY.toLowerCase()}/${DOCKER_IMAGE.toLowerCase()}:latest
                     """
                 }
             }
