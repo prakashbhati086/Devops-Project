@@ -3,7 +3,6 @@
   hosts: web
   become: true
   tasks:
-
     - name: Ensure Docker is installed
       apt:
         name: docker.io
@@ -16,15 +15,16 @@
         state: started
         enabled: true
 
-    - name: Copy Docker image to EC2
-      copy:
-        src: websiiteimage.tar
-        dest: /tmp/websiiteimage.tar
+    - name: Log in to Docker Hub
+      shell: |
+        echo "{{ docker_pass }}" | docker login -u {{ docker_user }} --password-stdin
+      args:
+        executable: /bin/bash
 
-    - name: Load the Docker image
-      shell: docker load < /tmp/websiiteimage.tar
+    - name: Pull Docker image
+      shell: docker pull {{ docker_user }}/websiiteimage:latest
 
-    - name: Stop and remove any existing container
+    - name: Stop and remove existing container
       shell: |
         docker rm -f website || true
       args:
@@ -33,7 +33,7 @@
     - name: Run the Docker container
       docker_container:
         name: website
-        image: "websiiteimage:latest"
+        image: "{{ docker_user }}/websiiteimage:latest"
         state: started
         ports:
           - "80:80"
