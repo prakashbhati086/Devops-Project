@@ -1,6 +1,13 @@
 FROM nginx:alpine
 
-COPY . /usr/share/nginx/html
+# Remove default nginx index file
+RUN rm /usr/share/nginx/html/index.html
 
-EXPOSE 5555  
+# Copy all project files to nginx html directory
+COPY . /usr/share/nginx/html/
+
+# Expose port 80
+EXPOSE 80
+
+# Default command to run nginx
 CMD ["nginx", "-g", "daemon off;"]
