@@ -1,0 +1,18 @@
+- hosts: all
+  tasks:
+    - name: Login to Docker Hub
+      shell: echo "{{ docker_pass }}" | docker login -u "{{ docker_user }}" --password-stdin
+      args:
+        executable: /bin/bash
+
+    - name: Pull the Docker image
+      shell: docker pull prakashbhati086/websiiteimage:latest
+      
+    - name: Stop running container
+      shell: docker stop devops-project-container || true
+      
+    - name: Remove stopped container
+      shell: docker rm devops-project-container || true
+      
+    - name: Run the new container
+      shell: docker run -d --name devops-project-container -p 80:80 prakashbhati086/websiiteimage:latest
