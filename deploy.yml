@@ -1,7 +1,7 @@
 ---
 - name: Deploy Dockerized Website on EC2
   hosts: web
-  become: true  # Ensures commands run with sudo
+  become: true
   tasks:
 
     - name: Ensure Docker is installed
@@ -16,17 +16,13 @@
         state: started
         enabled: true
 
-    - name: Log in to Docker Hub
-      shell: |
-        echo "{{ docker_pass }}" | docker login -u "{{ docker_user }}" --password-stdin
-      args:
-        executable: /bin/bash
+    - name: Copy Docker image to EC2
+      copy:
+        src: websiiteimage.tar
+        dest: /tmp/websiiteimage.tar
 
-    - name: Pull the latest Docker image
-      shell: |
-        docker pull prakashbhati086/websiiteimage:latest
-      args:
-        executable: /bin/bash
+    - name: Load the Docker image
+      shell: docker load < /tmp/websiiteimage.tar
 
     - name: Stop and remove any existing container
       shell: |
@@ -37,7 +33,7 @@
     - name: Run the Docker container
       docker_container:
         name: website
-        image: "prakashbhati086/websiiteimage:latest"
+        image: "websiiteimage:latest"
         state: started
         ports:
           - "80:80"
