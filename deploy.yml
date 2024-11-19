@@ -1,11 +1,20 @@
-- name: Deploy Dockerized Website
+---
+- name: Deploy Dockerized Website on EC2
   hosts: web
+  become: true  # Ensures commands run with sudo
   tasks:
+
     - name: Ensure Docker is installed
       apt:
         name: docker.io
         state: present
         update_cache: yes
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
 
     - name: Log in to Docker Hub
       shell: |
@@ -13,11 +22,23 @@
       args:
         executable: /bin/bash
 
-    - name: Pull and run the Docker container
+    - name: Pull the latest Docker image
+      shell: |
+        docker pull prakashbhati086/websiiteimage:latest
+      args:
+        executable: /bin/bash
+
+    - name: Stop and remove any existing container
+      shell: |
+        docker rm -f website || true
+      args:
+        executable: /bin/bash
+
+    - name: Run the Docker container
       docker_container:
         name: website
-        image: "{{ docker_user }}/websiiteimage:latest"
+        image: "prakashbhati086/websiiteimage:latest"
         state: started
         ports:
           - "80:80"
-        recreate: true
+        restart_policy: always
