@@ -1,6 +1,6 @@
 ---
 - name: Deploy Dockerized Website on EC2
-  hosts: web  # Reference the group defined in your inventory file
+  hosts: web
   become: true
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
@@ -8,11 +8,46 @@
     image_name: "websiteimage:latest"
   
   tasks:
-    - name: Ensure Docker is installed
+    - name: Ensure containerd is purged
       apt:
-        name: docker.io  # Use docker.io for Ubuntu's package
+        name: containerd
+        state: absent
+
+    - name: Ensure Docker dependencies are installed
+      apt:
+        name: apt-transport-https
         state: present
         update_cache: yes
+
+    - name: Ensure CA certificates are installed
+      apt:
+        name: ca-certificates
+        state: present
+
+    - name: Ensure curl is installed
+      apt:
+        name: curl
+        state: present
+
+    - name: Ensure software-properties-common is installed
+      apt:
+        name: software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+    - name: Add Docker repository
+      shell: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+    - name: Update package list
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
 
     - name: Start Docker service
       service:
