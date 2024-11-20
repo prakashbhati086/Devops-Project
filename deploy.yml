@@ -44,3 +44,4 @@
         ports:
           - "80:80"
         restart_policy: always
+        
