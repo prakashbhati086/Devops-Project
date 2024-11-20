@@ -1,5 +1,6 @@
 ---
 - name: Deploy Dockerized Website on EC2
+hosts: 3.84.133.159  # Directly specify your EC2 IP
   hosts: web
   become: true
   vars:
@@ -28,8 +29,8 @@
     - name: Pull Docker image
       docker_image:
         name: "{{ docker_user }}/{{ image_name }}"
-        source: pull
-        pull: yes  # Ensures the image is pulled again from Docker Hub
+        state: present  # This ensures the image is pulled if not already present
+        pull: yes  # Ensures the image is pulled from Docker Hub
 
     - name: Stop and remove existing container
       docker_container:
