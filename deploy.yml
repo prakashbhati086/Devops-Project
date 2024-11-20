@@ -2,10 +2,15 @@
 - name: Deploy Dockerized Website on EC2
   hosts: web
   become: true
+  vars:
+    docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
+    docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
+    image_name: "websiteimage:latest"  # Replace with your actual image name if different
+  
   tasks:
     - name: Ensure Docker is installed
       apt:
-        name: docker.io
+        name: docker-ce
         state: present
         update_cache: yes
 
@@ -16,24 +21,24 @@
         enabled: true
 
     - name: Log in to Docker Hub
-      shell: |
-        echo "{{ docker_pass }}" | docker login -u {{ docker_user }} --password-stdin
-      args:
-        executable: /bin/bash
+      docker_login:
+        username: "{{ docker_user }}"
+        password: "{{ docker_pass }}"
 
     - name: Pull Docker image
-      shell: docker pull {{ docker_user }}/websiiteimage:latest
+      docker_image:
+        name: "{{ docker_user }}/{{ image_name }}"
+        source: pull
 
     - name: Stop and remove existing container
-      shell: |
-        docker rm -f website || true
-      args:
-        executable: /bin/bash
+      docker_container:
+        name: website
+        state: absent
 
     - name: Run the Docker container
       docker_container:
         name: website
-        image: "{{ docker_user }}/websiiteimage:latest"
+        image: "{{ docker_user }}/{{ image_name }}"
         state: started
         ports:
           - "80:80"
