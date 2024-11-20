@@ -1,17 +1,16 @@
 ---
 - name: Deploy Dockerized Website on EC2
-hosts: 3.84.133.159  # Directly specify your EC2 IP
-  hosts: web
+  hosts: web  # Reference the group defined in your inventory file
   become: true
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
     docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
-    image_name: "websiteimage:latest"  # Replace with your actual image name if different
+    image_name: "websiteimage:latest"
   
   tasks:
     - name: Ensure Docker is installed
       apt:
-        name: docker-ce
+        name: docker.io  # Use docker.io for Ubuntu's package
         state: present
         update_cache: yes
 
@@ -29,8 +28,8 @@ hosts: 3.84.133.159  # Directly specify your EC2 IP
     - name: Pull Docker image
       docker_image:
         name: "{{ docker_user }}/{{ image_name }}"
-        state: present  # This ensures the image is pulled if not already present
-        pull: yes  # Ensures the image is pulled from Docker Hub
+        state: present
+        pull: yes
 
     - name: Stop and remove existing container
       docker_container:
