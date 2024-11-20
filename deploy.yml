@@ -5,7 +5,7 @@
   vars:
     docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
     docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
-    image_name: "websiteimage:latest"
+    image_name: "websiteimage:latest"  # Replace with your actual image name if different
   
   tasks:
     - name: Ensure Docker is installed
@@ -29,7 +29,7 @@
       docker_image:
         name: "{{ docker_user }}/{{ image_name }}"
         source: pull
-        force: yes  # Ensures the latest image is pulled from Docker Hub
+        pull: yes  # Ensures the image is pulled again from Docker Hub
 
     - name: Stop and remove existing container
       docker_container:
