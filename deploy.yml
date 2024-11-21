@@ -1,72 +1,72 @@
 ---
-  - name: Deploy Dockerized Website on EC2
-    hosts: web
-    become: true
-    vars:
-      docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
-      docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
-      image_name: "websiteimage"
-      image_tag: "{{ image_tag }}"  # Use the dynamic tag passed from Jenkins
-  
-    tasks:
-      - name: Install required packages
-        apt:
-          name:
-            - apt-transport-https
-            - ca-certificates
-            - curl
-            - software-properties-common
-          state: present
-          update_cache: yes
+- name: Deploy Dockerized Website on EC2
+  hosts: web
+  become: true
+  vars:
+    docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
+    docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
+    image_name: "websiteimage"
+    commit_hash: "{{ git_commit_hash }}"  # Variable for the commit hash passed from Jenkins
 
-      - name: Add Docker GPG key
-        shell: |
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-        register: add_gpg_key
-        changed_when: "'OK' in add_gpg_key.stdout"
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
 
-      - name: Add Docker repository
-        shell: |
-          add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        register: add_repo
-        changed_when: "'added' in add_repo.stdout or 'already exists' in add_repo.stdout"
+    - name: Add Docker GPG key
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+      register: add_gpg_key
+      changed_when: "'OK' in add_gpg_key.stdout"
 
-      - name: Update package list
-        apt:
-          update_cache: yes
+    - name: Add Docker repository
+      shell: |
+        add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      register: add_repo
+      changed_when: "'added' in add_repo.stdout or 'already exists' in add_repo.stdout"
 
-      - name: Install Docker
-        apt:
-          name: docker-ce
-          state: present
+    - name: Update package list
+      apt:
+        update_cache: yes
 
-      - name: Start Docker service
-        service:
-          name: docker
-          state: started
-          enabled: true
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
 
-      - name: Log in to Docker Hub
-        docker_login:
-          username: "{{ docker_user }}"
-          password: "{{ docker_pass }}"
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
 
-      - name: Pull Docker image
-        docker_image:
-          name: "{{ docker_user }}/{{ image_name }}"
-          tag: "{{ image_tag }}"  # Use the dynamic tag
-          source: pull
+    - name: Log in to Docker Hub
+      docker_login:
+        username: "{{ docker_user }}"
+        password: "{{ docker_pass }}"
 
-      - name: Stop and remove existing container
-        docker_container:
-          name: website
-          state: absent
+    - name: Pull Docker image
+      docker_image:
+        name: "{{ docker_user }}/{{ image_name }}"
+        tag: "{{ commit_hash }}"  # Use the commit hash for the image tag
+        source: pull
 
-      - name: Run the Docker container
-        docker_container:
-          name: website
-          image: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"  # Use the dynamic tag
-          state: started
-          ports:
-            - "80:80"
-          restart_policy: always
+    - name: Stop and remove existing container
+      docker_container:
+        name: website
+        state: absent
+
+    - name: Run the Docker container
+      docker_container:
+        name: website
+        image: "{{ docker_user }}/{{ image_name }}:{{ commit_hash }}"  # Use the commit hash in the image name
+        state: started
+        ports:
+          - "80:80"
+        restart_policy: always
