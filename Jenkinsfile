@@ -32,7 +32,9 @@ pipeline {
                     GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     echo "Using commit hash: ${GIT_COMMIT_HASH}" 
             }
+            }
         }
+
 
         stage('Build Docker Image') {
             steps {
@@ -96,4 +98,4 @@ pipeline {
         }
     }
 }
-}
+
