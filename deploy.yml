@@ -53,8 +53,8 @@
       - name: Pull Docker image
         docker_image:
           name: "{{ docker_user }}/{{ image_name }}"
-          state: present
-          pull: yes
+          tag: "latest"
+          source: pull
   
       - name: Stop and remove existing container
         docker_container:
