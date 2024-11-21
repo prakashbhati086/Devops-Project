@@ -1,82 +1,68 @@
 ---
-- name: Deploy Dockerized Website on EC2
-  hosts: web
-  become: true
-  vars:
-    docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
-    docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
-    image_name: "websiteimage:latest"
+  - name: Deploy Dockerized Website on EC2
+    hosts: web
+    become: true
+    vars:
+      docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
+      docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
+      image_name: "websiteimage:latest"
   
-  tasks:
-    - name: Ensure containerd is purged
-      apt:
-        name: containerd
-        state: absent
-
-    - name: Ensure Docker dependencies are installed
-      apt:
-        name: apt-transport-https
-        state: present
-        update_cache: yes
-
-    - name: Ensure CA certificates are installed
-      apt:
-        name: ca-certificates
-        state: present
-
-    - name: Ensure curl is installed
-      apt:
-        name: curl
-        state: present
-
-    - name: Ensure software-properties-common is installed
-      apt:
-        name: software-properties-common
-        state: present
-
-    - name: Add Docker GPG key
-      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-
-    - name: Add Docker repository
-      shell: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-
-    - name: Update package list
-      apt:
-        update_cache: yes
-
-    - name: Install Docker
-      apt:
-        name: docker-ce
-        state: present
-
-    - name: Start Docker service
-      service:
-        name: docker
-        state: started
-        enabled: true
-
-    - name: Log in to Docker Hub
-      docker_login:
-        username: "{{ docker_user }}"
-        password: "{{ docker_pass }}"
-
-    - name: Pull Docker image
-      docker_image:
-        name: "{{ docker_user }}/{{ image_name }}"
-        state: present
-        pull: yes
-
-    - name: Stop and remove existing container
-      docker_container:
-        name: website
-        state: absent
-
-    - name: Run the Docker container
-      docker_container:
-        name: website
-        image: "{{ docker_user }}/{{ image_name }}"
-        state: started
-        ports:
-          - "80:80"
-        restart_policy: always
-        
+    tasks:
+      - name: Install required packages
+        apt:
+          name: 
+            - apt-transport-https
+            - ca-certificates
+            - curl
+            - software-properties-common
+          state: present
+          update_cache: yes
+  
+      - name: Add Docker GPG key
+        ansible.builtin.shell: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+        args:
+          warn: false
+  
+      - name: Add Docker repository
+        ansible.builtin.shell: |
+          add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        args:
+          warn: false
+  
+      - name: Install Docker
+        apt:
+          name: docker-ce
+          state: present
+  
+      - name: Start Docker service
+        service:
+          name: docker
+          state: started
+          enabled: true
+  
+      - name: Log in to Docker Hub
+        docker_login:
+          username: "{{ docker_user }}"
+          password: "{{ docker_pass }}"
+  
+      - name: Pull Docker image
+        docker_image:
+          name: "{{ docker_user }}/{{ image_name }}"
+          state: present
+          pull: yes
+  
+      - name: Stop and remove existing container
+        docker_container:
+          name: website
+          state: absent
+  
+      - name: Run the Docker container
+        docker_container:
+          name: website
+          image: "{{ docker_user }}/{{ image_name }}"
+          state: started
+          ports:
+            - "80:80"
+          restart_policy: always
+  
