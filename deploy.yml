@@ -19,16 +19,20 @@
           update_cache: yes
   
       - name: Add Docker GPG key
-        ansible.builtin.shell: |
+        shell: |
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-        args:
-          warn: false
+        register: add_gpg_key
+        changed_when: "'OK' in add_gpg_key.stdout"
   
       - name: Add Docker repository
-        ansible.builtin.shell: |
+        shell: |
           add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        args:
-          warn: false
+        register: add_repo
+        changed_when: "'added' in add_repo.stdout or 'already exists' in add_repo.stdout"
+  
+      - name: Update package list
+        apt:
+          update_cache: yes
   
       - name: Install Docker
         apt:
