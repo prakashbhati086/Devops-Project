@@ -6,7 +6,7 @@
     docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
     docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
     image_name: "websiteimage"
-    commit_hash: "{{ git_commit_hash }}"  # Variable for the commit hash passed from Jenkins
+    commit_hash: "{{ git_commit_hash }}"  
 
   tasks:
     - name: Install required packages
@@ -54,7 +54,7 @@
     - name: Pull Docker image
       docker_image:
         name: "{{ docker_user }}/{{ image_name }}"
-        tag: "{{ commit_hash }}"  # Use the commit hash for the image tag
+        tag: "{{ commit_hash }}" 
         source: pull
 
     - name: Stop and remove existing container
@@ -65,7 +65,7 @@
     - name: Run the Docker container
       docker_container:
         name: website
-        image: "{{ docker_user }}/{{ image_name }}:{{ commit_hash }}"  # Use the commit hash in the image name
+        image: "{{ docker_user }}/{{ image_name }}:{{ commit_hash }}"  
         state: started
         ports:
           - "80:80"
