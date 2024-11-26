@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_USER = 'prakashbhati086'           
-        DOCKER_PASS = ''                
+        DOCKER_PASS = 'PRA@1234a'                
         DOCKER_IMAGE = 'websiteimage'            
         EC2_IP = '3.84.133.159'                 
         CONTAINER_PORT = '80'                   
