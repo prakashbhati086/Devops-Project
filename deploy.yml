@@ -21,7 +21,7 @@
 
     - name: Add Docker GPG key
       shell: |
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - 
       register: add_gpg_key
       changed_when: "'OK' in add_gpg_key.stdout"
 
@@ -35,10 +35,11 @@
       apt:
         update_cache: yes
 
-    - name: Install Docker
+    - name: Install Docker (skip if already installed)
       apt:
         name: docker-ce
         state: present
+      when: ansible_facts.packages['docker-ce'] is not defined
 
     - name: Start Docker service
       service:
