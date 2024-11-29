@@ -24,13 +24,16 @@ pipeline {
         }
 
         stage('Set Commit Hash') {
-            steps {
-                script {
-                    env.GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    echo "Using commit hash: ${env.GIT_COMMIT_HASH}"
-                }
+    steps {
+        script {
+            env.GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+            echo "Using commit hash: ${env.GIT_COMMIT_HASH}"
+            if (!env.GIT_COMMIT_HASH) {
+                error "Commit hash is null. Aborting pipeline."
             }
         }
+    }
+}
 
         stage('Build Docker Image') {
             steps {
@@ -80,10 +83,14 @@ pipeline {
                         def imageTag = "${env.DOCKER_USER}/${env.DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
                         echo "Deploying with image tag: ${imageTag}"
                         ansiblePlaybook(
-                            playbook: 'deploy.yml',
-                            inventory: '/var/lib/jenkins/workspace/website@2/hosts',
-                            extras: "-e docker_user=${env.DOCKER_USER} -e docker_pass=${env.DOCKER_PASS} -e git_commit_hash=${env.GIT_COMMIT_HASH}"
-                        )
+    playbook: 'deploy.yml',
+    inventory: '/var/lib/jenkins/workspace/website@2/hosts',
+    extraVars: [
+        docker_user: "${DOCKER_USER}",
+        docker_pass: "${DOCKER_PASS}",
+        git_commit_hash: "${GIT_COMMIT_HASH}"
+    ]
+)
                     }
                 }
             }
