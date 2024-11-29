@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USER = 'prakashbhati086'           
-        DOCKER_PASS = ''                
         DOCKER_IMAGE = 'websiteimage'            
-        EC2_IP = '3.84.133.159'                 
+        EC2_IP = '3.84.133.159'                  
         CONTAINER_PORT = '80'                   
         PEM_FILE_PATH = '/var/lib/jenkins/.ssh/pemkeyweb.pem'  
         GIT_COMMIT_HASH = ""                     
@@ -28,19 +26,17 @@ pipeline {
         stage('Set Commit Hash') {
             steps {
                 script {
-                    
                     GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    echo "Using commit hash: ${GIT_COMMIT_HASH}" 
-            }
+                    echo "Using commit hash: ${GIT_COMMIT_HASH}"
+                }
             }
         }
-
 
         stage('Build Docker Image') {
             steps {
                 script {
                     def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${GIT_COMMIT_HASH}"
-                    echo "Building image with tag: ${imageTag}" 
+                    echo "Building image with tag: ${imageTag}"
                     sh "docker build -t ${imageTag} ."
                 }
             }
@@ -50,8 +46,8 @@ pipeline {
             steps {
                 script {
                     def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${GIT_COMMIT_HASH}"
-                    echo "Pushing image with tag: ${imageTag}" 
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    echo "Pushing image with tag: ${imageTag}"
+                    withCredentials([usernamePassword(credentialsId: 'docker-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
                             docker push ${imageTag}
@@ -78,14 +74,16 @@ pipeline {
             steps {
                 script {
                     def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${GIT_COMMIT_HASH}"
-                    echo "Deploying with image tag: ${imageTag}"  
-                    ansiblePlaybook(
-                        playbook: 'deploy.yml',
-                        inventory: '/var/lib/jenkins/workspace/website@2/hosts',
-                        extras: "-e docker_user=${DOCKER_USER} -e docker_pass=${DOCKER_PASS} -e git_commit_hash=${GIT_COMMIT_HASH}"
+                    echo "Deploying with image tag: ${imageTag}"
+                    withCredentials([usernamePassword(credentialsId: 'docker-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        ansiblePlaybook(
+                            playbook: 'deploy.yml',
+                            inventory: '/var/lib/jenkins/workspace/website@2/hosts',
+                            extras: "-e docker_user=${DOCKER_USER} -e docker_pass=${DOCKER_PASS} -e git_commit_hash=${GIT_COMMIT_HASH}"
                         )
                     }
                 }
+            }
         }
     }
 
@@ -98,4 +96,3 @@ pipeline {
         }
     }
 }
-
