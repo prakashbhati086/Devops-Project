@@ -38,7 +38,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         def imageTag = "${env.DOCKER_USER}/${env.DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
                         echo "Building image with tag: ${imageTag}"
-                        sh "docker build -t ${imageTag} ."
+                        sh "docker build --no-cache -t ${imageTag} ."
                     }
                 }
             }
