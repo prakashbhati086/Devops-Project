@@ -1,18 +1,18 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_IMAGE = 'websiteimage'
-        EC2_IP = '3.84.133.159'
-        CONTAINER_PORT = '80'
-        PEM_FILE_PATH = '/var/lib/jenkins/.ssh/pemkeyweb.pem'
-        GIT_COMMIT_HASH = ""
+        DOCKER_IMAGE = 'websiteimage'            
+        EC2_IP = '3.84.133.159'                  
+        CONTAINER_PORT = '80'                   
+        PEM_FILE_PATH = '/var/lib/jenkins/.ssh/pemkeyweb.pem'  
+        DOCKER_CREDENTIALS = credentials('docker-credential')  // Define the credentials here
+        DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"               // Correct reference for username
+        DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"               // Correct reference for password
     }
-
     stages {
         stage('Checkout Code') {
             steps {
-                checkout([
+                checkout([ 
                     $class: 'GitSCM',
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
@@ -22,84 +22,62 @@ pipeline {
                 ])
             }
         }
-
         stage('Set Commit Hash') {
             steps {
                 script {
-                    // Get the short Git commit hash
+                    // Dynamically get the Git commit hash
                     env.GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     echo "Using commit hash: ${env.GIT_COMMIT_HASH}"
                 }
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image with the commit hash as a tag
-                    withCredentials([usernamePassword(credentialsId: 'docker-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        def imageTag = "${env.DOCKER_USER}/${env.DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
-                        echo "Building Docker image with tag: ${imageTag}"
-                        sh "docker build --no-cache -t ${imageTag} ."
-                    }
+                    def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
+                    echo "Building image with tag: ${imageTag}" 
+                    sh "docker build -t ${imageTag} ."
                 }
             }
         }
-
         stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    // Log in and push the Docker image to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'docker-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        def imageTag = "${env.DOCKER_USER}/${env.DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
-                        echo "Pushing image to Docker Hub with tag: ${imageTag}"
-                        sh """
-                            docker login -u ${env.DOCKER_USER} -p ${env.DOCKER_PASS}
-                            docker push ${imageTag}
-                        """
-                    }
+                    def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
+                    echo "Pushing image with tag: ${imageTag}" 
+                    sh """
+                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                        docker push ${imageTag}
+                    """
                 }
             }
         }
-
         stage('Set PEM File Permissions') {
             steps {
-                script {
-                    // Ensure that the PEM file has the correct permissions
-                    def pemFile = '/var/lib/jenkins/.ssh/pemkeyweb.pem'
-                    if (fileExists(pemFile)) {
-                        echo "Setting PEM file permissions..."
-                        sh "sudo chmod 400 ${pemFile}"
-                    } else {
-                        error "PEM file not found at ${pemFile}"
-                    }
-                }
+                sh '''
+                    if [ -f "${PEM_FILE_PATH}" ]; then
+                        chmod 400 ${PEM_FILE_PATH}
+                    else
+                        echo "PEM file not found at ${PEM_FILE_PATH}"
+                        exit 1
+                    fi
+                '''
             }
         }
-
         stage('Run Ansible Playbook') {
             steps {
                 script {
-                    // Deploy using Ansible Playbook
-                    withCredentials([usernamePassword(credentialsId: 'docker-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        def imageTag = "${env.DOCKER_USER}/${env.DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
-                        echo "Deploying with image tag: ${imageTag}"
-                        ansiblePlaybook(
-                            playbook: 'deploy.yml',
-                            inventory: '/var/lib/jenkins/workspace/website@2/hosts',
-                            extraVars: [
-                                docker_user: "${DOCKER_USER}",
-                                docker_pass: "${DOCKER_PASS}",
-                                git_commit_hash: "${GIT_COMMIT_HASH}",
-                                pem_file_path: "${PEM_FILE_PATH}"
-                            ]
-                        )
-                    }
+                    def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
+                    echo "Deploying with image tag: ${imageTag}"  
+                    ansiblePlaybook(
+                        playbook: 'deploy.yml',
+                        inventory: '/var/lib/jenkins/workspace/website@2/hosts',
+                        extras: "-e docker_user=${DOCKER_USER} -e docker_pass=${DOCKER_PASS} -e git_commit_hash=${env.GIT_COMMIT_HASH}"
+                    )
                 }
             }
         }
     }
-
     post {
         success {
             echo 'Deployment completed successfully!'
