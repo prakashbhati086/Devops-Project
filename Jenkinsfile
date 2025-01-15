@@ -56,7 +56,7 @@ pipeline {
             steps {
                 sh '''
                     if [ -f "${PEM_FILE_PATH}" ]; then
-                       sudo chmod 400 ${PEM_FILE_PATH}
+                       chmod 400 ${PEM_FILE_PATH}
                     else
                         echo "PEM file not found at ${PEM_FILE_PATH}"
                         exit 1
