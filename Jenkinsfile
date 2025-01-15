@@ -71,7 +71,7 @@ pipeline {
                     echo "Deploying with image tag: ${imageTag}"  
                     ansiblePlaybook(
                         playbook: 'deploy.yml',
-                        inventory: '/var/lib/jenkins/workspace/website@2/hosts',
+                        inventory: '/var/lib/jenkins/workspace/Webhost/hosts',
                         extras: "-e docker_user=${DOCKER_USER} -e docker_pass=${DOCKER_PASS} -e git_commit_hash=${env.GIT_COMMIT_HASH}"
                     )
                 }
