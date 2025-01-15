@@ -2,12 +2,12 @@ pipeline {
     agent any
     environment {
         DOCKER_IMAGE = 'websiteimage'            
-        EC2_IP = '3.84.133.159'                  
+        EC2_IP = '54.82.32.221'                  
         CONTAINER_PORT = '80'                   
         PEM_FILE_PATH = '/var/lib/jenkins/.ssh/pemkeyweb.pem'  
-        DOCKER_CREDENTIALS = credentials('docker-credential')  // Define the credentials here
-        DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"               // Correct reference for username
-        DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"               // Correct reference for password
+        DOCKER_CREDENTIALS = credentials('docker-credential')  
+        DOCKER_USER = "${DOCKER_CREDENTIALS_USR}"               
+        DOCKER_PASS = "${DOCKER_CREDENTIALS_PSW}"               
     }
     stages {
         stage('Checkout Code') {
@@ -25,7 +25,7 @@ pipeline {
         stage('Set Commit Hash') {
             steps {
                 script {
-                    // Dynamically get the Git commit hash
+                   
                     env.GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     echo "Using commit hash: ${env.GIT_COMMIT_HASH}"
                 }
