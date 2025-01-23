@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         DOCKER_IMAGE = 'websiteimage'            
-        EC2_IP = '54.82.32.221'                  
+        EC2_IP = '3.88.154.155'                  
         CONTAINER_PORT = '80'                   
         PEM_FILE_PATH = '/var/lib/jenkins/.ssh/pemkeyweb.pem'  
         DOCKER_CREDENTIALS = credentials('docker-credential')  
