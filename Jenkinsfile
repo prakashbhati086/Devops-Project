@@ -20,7 +20,7 @@ pipeline {
                 sh 'ls -la'
             }
         }
-        
+    }
         stage('Set Commit Hash') {
             steps {
                 script {
