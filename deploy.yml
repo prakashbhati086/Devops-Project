@@ -13,7 +13,7 @@
     - name: Update system packages
       apt:
         update_cache: yes
-        upgrade: yes
+        cache_valid_time: 3600  # Cache for 1 hour to speed up repeated runs
 
     - name: Install required packages
       apt:
@@ -22,15 +22,8 @@
           - ca-certificates
           - curl
           - software-properties-common
-          - python3-pip
-          - python3-docker  # ✅ Use system package instead
+          - python3-docker
         state: present
-
-    # ❌ Remove this problematic task:
-    # - name: Install Docker Python library
-    #   pip:
-    #     name: docker
-    #     state: present
 
     - name: Add Docker GPG key
       apt_key:
@@ -42,7 +35,7 @@
         repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
 
-    - name: Update package cache
+    - name: Update package cache after adding Docker repo
       apt:
         update_cache: yes
 
@@ -51,7 +44,7 @@
         name: docker-ce
         state: present
 
-    - name: Start and enable Docker
+    - name: Start and enable Docker service
       systemd:
         name: docker
         state: started
@@ -92,4 +85,4 @@
 
     - name: Container deployment complete
       debug:
-        msg: "✅ Container {{ container_name }} deployed successfully!"
+        msg: "✅ Container {{ container_name }} deployed successfully with image {{ docker_user }}/{{ image_name }}:{{ commit_hash }}"
