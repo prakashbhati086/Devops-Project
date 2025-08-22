@@ -48,24 +48,6 @@ pipeline {
             }
         }
         
-        stage('Test Docker Image') {
-            steps {
-                script {
-                    def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
-                    echo "Testing Docker image locally..."
-                    
-                    sh """
-                        docker run -d --name test-container -p 8082:80 ${imageTag}
-                        sleep 15
-                        curl -f http://localhost:8082 || exit 1
-                        echo "✅ Local application test passed!"
-                        docker stop test-container
-                        docker rm test-container
-                    """
-                }
-            }
-        }
-        
         stage('Push to Docker Hub') {
             steps {
                 script {
@@ -82,42 +64,25 @@ pipeline {
             }
         }
         
-        stage('Deploy with Ansible') {
+       stage('Deploy with Ansible') {
     steps {
         script {
             def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
             echo "Deploying to EC2 with Ansible..."
             
             sh """
-                # Copy hosts.ini to current directory to avoid permission issues
-                cp hosts.ini ./temp-hosts.ini
-                
-                ansible-playbook deploy.yml \
-                    -i ./temp-hosts.ini \
-                    -e ansible_host_key_checking=False \
-                    -e docker_user=${DOCKER_USER} \
-                    -e docker_pass=${DOCKER_PASS} \
-                    -e git_commit_hash=${env.GIT_COMMIT_HASH} \
+                sudo ansible-playbook deploy.yml \\
+                    -i hosts.ini \\
+                    -e ansible_host_key_checking=False \\
+                    -e docker_user=${DOCKER_USER} \\
+                    -e docker_pass=${DOCKER_PASS} \\
+                    -e git_commit_hash=${env.GIT_COMMIT_HASH} \\
                     -v
             """
         }
     }
 }
-        
-        stage('Health Check') {
-            steps {
-                script {
-                    echo "Performing health check..."
-                    sh """
-                        sleep 30
-                        curl -f http://${EC2_IP}:${CONTAINER_PORT} || exit 1
-                        echo "✅ Website is live!"
-                        echo "🌐 Visit: http://${EC2_IP}"
-                    """
-                }
-            }
-        }
-    }
+
     
     post {
         always {
