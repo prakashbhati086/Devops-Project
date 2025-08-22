@@ -83,25 +83,26 @@ pipeline {
         }
         
         stage('Deploy with Ansible') {
-            steps {
-                script {
-                    def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
-                    echo "Deploying to EC2 with Ansible..."
-                    
-                    sh """
-                        ansible-playbook deploy.yml \
-                            -i '${EC2_IP},' \
-                            --private-key=${PEM_FILE_PATH} \
-                            -u ubuntu \
-                            -e ansible_host_key_checking=False \
-                            -e docker_user=${DOCKER_USER} \
-                            -e docker_pass=${DOCKER_PASS} \
-                            -e git_commit_hash=${env.GIT_COMMIT_HASH} \
-                            -v
-                    """
-                }
-            }
+    steps {
+        script {
+            def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
+            echo "Deploying to EC2 with Ansible..."
+            
+            sh """
+                # Copy hosts.ini to current directory to avoid permission issues
+                cp hosts.ini ./temp-hosts.ini
+                
+                ansible-playbook deploy.yml \
+                    -i ./temp-hosts.ini \
+                    -e ansible_host_key_checking=False \
+                    -e docker_user=${DOCKER_USER} \
+                    -e docker_pass=${DOCKER_PASS} \
+                    -e git_commit_hash=${env.GIT_COMMIT_HASH} \
+                    -v
+            """
         }
+    }
+}
         
         stage('Health Check') {
             steps {
