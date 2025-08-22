@@ -1,6 +1,6 @@
 ---
 - name: Deploy Website to EC2
-  hosts: awebservers
+  hosts: all
   become: true
   vars:
     docker_user: "{{ docker_user }}"
