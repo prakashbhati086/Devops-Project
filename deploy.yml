@@ -1,14 +1,20 @@
 ---
-- name: Deploy Dockerized Website on EC2
-  hosts: web
+- name: Deploy Website to EC2
+  hosts: all
   become: true
   vars:
-    docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
-    docker_pass: "{{ lookup('env', 'DOCKER_PASS') }}"
+    docker_user: "{{ docker_user }}"
+    docker_pass: "{{ docker_pass }}"
     image_name: "websiteimage"
     commit_hash: "{{ git_commit_hash }}"
+    container_name: "webapp"
 
   tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
     - name: Install required packages
       apt:
         name:
@@ -16,36 +22,44 @@
           - ca-certificates
           - curl
           - software-properties-common
+          - python3-pip
         state: present
-        update_cache: yes
+
+    - name: Install Docker Python library
+      pip:
+        name: docker
+        state: present
 
     - name: Add Docker GPG key
-      shell: |
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - 
-      register: add_gpg_key
-      changed_when: "'OK' in add_gpg_key.stdout"
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
 
     - name: Add Docker repository
-      shell: |
-        add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-      register: add_repo
-      changed_when: "'added' in add_repo.stdout or 'already exists' in add_repo.stdout"
+      apt_repository:
+        repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
 
-    - name: Update package list
+    - name: Update package cache
       apt:
         update_cache: yes
 
-    - name: Install Docker (skip if already installed)
+    - name: Install Docker CE
       apt:
         name: docker-ce
         state: present
-      when: ansible_facts.packages['docker-ce'] is not defined
 
-    - name: Start Docker service
-      service:
+    - name: Start and enable Docker
+      systemd:
         name: docker
         state: started
-        enabled: true
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
 
     - name: Log in to Docker Hub
       docker_login:
@@ -57,17 +71,35 @@
         name: "{{ docker_user }}/{{ image_name }}"
         tag: "{{ commit_hash }}"
         source: pull
+        force_source: yes
 
-    - name: Stop and remove existing container
+    - name: Stop existing container
       docker_container:
-        name: website
+        name: "{{ container_name }}"
         state: absent
+      ignore_errors: yes
 
-    - name: Run the Docker container
+    - name: Run new container
       docker_container:
-        name: website
+        name: "{{ container_name }}"
         image: "{{ docker_user }}/{{ image_name }}:{{ commit_hash }}"
         state: started
         ports:
           - "80:80"
         restart_policy: always
+
+    - name: Wait for container to start
+      wait_for:
+        port: 80
+        host: "{{ inventory_hostname }}"
+        delay: 10
+        timeout: 60
+
+    - name: Test website
+      uri:
+        url: "http://{{ inventory_hostname }}"
+        method: GET
+        status_code: 200
+      delegate_to: localhost
+      retries: 3
+      delay: 5
