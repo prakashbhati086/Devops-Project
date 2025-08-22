@@ -23,12 +23,14 @@
           - curl
           - software-properties-common
           - python3-pip
+          - python3-docker  # ✅ Use system package instead
         state: present
 
-    - name: Install Docker Python library
-      pip:
-        name: docker
-        state: present
+    # ❌ Remove this problematic task:
+    # - name: Install Docker Python library
+    #   pip:
+    #     name: docker
+    #     state: present
 
     - name: Add Docker GPG key
       apt_key:
