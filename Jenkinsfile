@@ -64,24 +64,27 @@ pipeline {
             }
         }
         
-        stage('Deploy with Ansible') {
-            steps {
-                script {
-                    def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
-                    echo "Deploying to EC2 with Ansible..."
-                    
-                    sh """
-                        sudo ansible-playbook deploy.yml \\
-                            -i hosts.ini \\
-                            -e ansible_host_key_checking=False \\
-                            -e docker_user=${DOCKER_USER} \\
-                            -e docker_pass=${DOCKER_PASS} \\
-                            -e git_commit_hash=${env.GIT_COMMIT_HASH} \\
-                            -v
-                    """
-                }
-            }
+       stage('Deploy with Ansible') {
+    steps {
+        script {
+            def imageTag = "${DOCKER_USER}/${DOCKER_IMAGE}:${env.GIT_COMMIT_HASH}"
+            echo "Deploying to EC2 with Ansible..."
+            
+            sh """
+                # Use inline inventory instead of hosts.ini to avoid permission issues
+                ansible-playbook deploy.yml \\
+                    -i '${EC2_IP},' \\
+                    --private-key=${PEM_FILE_PATH} \\
+                    -u ubuntu \\
+                    -e ansible_host_key_checking=False \\
+                    -e docker_user=${DOCKER_USER} \\
+                    -e docker_pass=${DOCKER_PASS} \\
+                    -e git_commit_hash=${env.GIT_COMMIT_HASH} \\
+                    -v
+            """
         }
+    }
+}
     }
     
     post {
